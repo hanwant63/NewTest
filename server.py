@@ -3,6 +3,7 @@ Wrapper to run Telegram bot with Flask web server for Render deployment
 This satisfies Render's port binding requirement while keeping the bot running
 """
 import os
+import asyncio
 import threading
 from flask import Flask, jsonify
 
@@ -21,7 +22,12 @@ def health():
     return jsonify({'status': 'healthy'}), 200
 
 def run_bot():
-    """Run the Telegram bot in a separate thread"""
+    """Run the Telegram bot in a separate thread with its own event loop"""
+    # Create a new event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    # Now import and run the bot
     import main  # This imports and runs the bot
 
 if __name__ == '__main__':

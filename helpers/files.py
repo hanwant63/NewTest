@@ -9,7 +9,7 @@ from logger import LOGGER
 SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"]
 
 def get_download_path(folder_id: int, filename: str, root_dir: str = "downloads") -> str:
-    folder = os.path.join(root_dir,helpers/files.py str(folder_id))
+    folder = os.path.join(root_dir, str(folder_id))
     os.makedirs(folder, exist_ok=True)
     return os.path.join(folder, filename)
 

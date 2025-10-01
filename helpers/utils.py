@@ -29,6 +29,45 @@ from helpers.msg import (
     get_parsed_msg
 )
 
+async def process_thumbnail(thumb_path, max_size_kb=200):
+    """
+    Process thumbnail to meet Telegram requirements:
+    - JPEG format
+    - <= 200 KB
+    - Max 320px width/height
+    """
+    try:
+        with Image.open(thumb_path) as img:
+            # Convert to RGB (remove alpha channel if present)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize to fit within 320x320 while maintaining aspect ratio
+            img.thumbnail((320, 320), Image.Resampling.LANCZOS)
+            
+            # Save with compression, iteratively reduce quality if needed
+            quality = 95
+            while quality > 10:
+                img.save(thumb_path, 'JPEG', quality=quality, optimize=True)
+                
+                # Check file size
+                file_size_kb = os.path.getsize(thumb_path) / 1024
+                if file_size_kb <= max_size_kb:
+                    return True
+                
+                quality -= 10
+            
+            # If still too large after minimum quality, return False
+            file_size_kb = os.path.getsize(thumb_path) / 1024
+            if file_size_kb > max_size_kb:
+                LOGGER(__name__).warning(f"Thumbnail still {file_size_kb:.2f} KB after compression")
+                return False
+            
+            return True
+    except Exception as e:
+        LOGGER(__name__).error(f"Error processing thumbnail: {e}")
+        return False
+
 # Progress bar template
 PROGRESS_BAR = """
 Percentage: {percentage:.2f}% | {current}/{total}
@@ -102,7 +141,7 @@ def progressArgs(action: str, progress_message, start_time):
 
 
 async def send_media(
-    bot, message, media_path, media_type, caption, progress_message, start_time
+    bot, message, media_path, media_type, caption, progress_message, start_time, user_id=None
 ):
     file_size = os.path.getsize(media_path)
 
@@ -120,13 +159,70 @@ async def send_media(
             progress_args=progress_args,
         )
     elif media_type == "video":
-        if os.path.exists("Assets/video_thumb.jpg"):
-            os.remove("Assets/video_thumb.jpg")
+        # Check for custom thumbnail first
+        thumb = None
+        custom_thumb_path = None
+        fallback_thumb = None
+        
+        if user_id:
+            from database import db
+            custom_thumb_file_id = db.get_custom_thumbnail(user_id)
+            if custom_thumb_file_id:
+                try:
+                    # Use unique temp path to avoid race conditions
+                    import time as time_module
+                    timestamp = int(time_module.time() * 1000)
+                    os.makedirs("Assets/thumbs", exist_ok=True)
+                    custom_thumb_path = f"Assets/thumbs/user_{user_id}_{timestamp}.jpg"
+                    
+                    # Download the thumbnail from Telegram
+                    await bot.download_media(custom_thumb_file_id, file_name=custom_thumb_path)
+                    
+                    # Process thumbnail to meet Telegram requirements
+                    if await process_thumbnail(custom_thumb_path):
+                        thumb = custom_thumb_path
+                        LOGGER(__name__).info(f"Using custom thumbnail for user {user_id}")
+                    else:
+                        LOGGER(__name__).warning(f"Failed to process custom thumbnail for user {user_id}, will try fallback")
+                        thumb = None
+                except Exception as e:
+                    LOGGER(__name__).error(f"Failed to download custom thumbnail for user {user_id}: {e}")
+                    thumb = None
+        
+        # Get video duration
         duration = (await get_media_info(media_path))[0]
-        thumb = await get_video_thumbnail(media_path, duration)
-        if thumb is not None and thumb != "none":
-            with Image.open(thumb) as img:
-                width, height = img.size
+        
+        # If no custom thumbnail, prepare unique fallback thumbnail
+        if not thumb:
+            import time as time_module
+            timestamp = int(time_module.time() * 1000)
+            os.makedirs("Assets/thumbs", exist_ok=True)
+            fallback_thumb = f"Assets/thumbs/fb_{user_id or 0}_{timestamp}.jpg"
+            
+            # Extract thumbnail from video to unique path
+            cmd = [
+                "ffmpeg", "-hide_banner", "-loglevel", "error",
+                "-ss", str(duration // 2 if duration else 3), "-i", media_path,
+                "-vf", "thumbnail", "-q:v", "1", "-frames:v", "1",
+                "-threads", str((os.cpu_count() or 4) // 2), fallback_thumb,
+            ]
+            try:
+                _, err, code = await wait_for(cmd_exec(cmd), timeout=60)
+                if code == 0 and os.path.exists(fallback_thumb):
+                    thumb = fallback_thumb
+                else:
+                    thumb = None
+            except:
+                thumb = None
+        
+        # Get video dimensions
+        if thumb and thumb != "none" and os.path.exists(str(thumb)):
+            try:
+                with Image.open(thumb) as img:
+                    width, height = img.size
+            except:
+                width = 480
+                height = 320
         else:
             width = 480
             height = 320
@@ -134,16 +230,92 @@ async def send_media(
         if thumb == "none":
             thumb = None
 
-        await message.reply_video(
-            media_path,
-            duration=duration,
-            width=width,
-            height=height,
-            thumb=thumb,
-            caption=caption or "",
-            progress=Leaves.progress_for_pyrogram,
-            progress_args=progress_args,
-        )
+        # Try uploading with thumbnail, fallback on error
+        try:
+            await message.reply_video(
+                media_path,
+                duration=duration,
+                width=width,
+                height=height,
+                thumb=thumb,
+                caption=caption or "",
+                progress=Leaves.progress_for_pyrogram,
+                progress_args=progress_args,
+            )
+        except Exception as e:
+            # If thumbnail causes error, try with fallback or no thumb
+            LOGGER(__name__).error(f"Upload failed with thumbnail: {e}")
+            
+            # If custom thumbnail was used, generate fallback now
+            if custom_thumb_path and not fallback_thumb:
+                LOGGER(__name__).info("Custom thumbnail failed, generating fallback thumbnail")
+                try:
+                    import time as time_module
+                    timestamp = int(time_module.time() * 1000)
+                    fallback_thumb = f"Assets/thumbs/fb_{user_id or 0}_{timestamp}.jpg"
+                    
+                    cmd = [
+                        "ffmpeg", "-hide_banner", "-loglevel", "error",
+                        "-ss", str(duration // 2 if duration else 3), "-i", media_path,
+                        "-vf", "thumbnail", "-q:v", "1", "-frames:v", "1",
+                        "-threads", str((os.cpu_count() or 4) // 2), fallback_thumb,
+                    ]
+                    _, err, code = await wait_for(cmd_exec(cmd), timeout=60)
+                    if code != 0 or not os.path.exists(fallback_thumb):
+                        fallback_thumb = None
+                except:
+                    fallback_thumb = None
+            
+            # Try with fallback thumbnail
+            if fallback_thumb:
+                LOGGER(__name__).info("Retrying with auto-extracted thumbnail")
+                try:
+                    await message.reply_video(
+                        media_path,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        thumb=fallback_thumb,
+                        caption=caption or "",
+                        progress=Leaves.progress_for_pyrogram,
+                        progress_args=progress_args,
+                    )
+                except Exception as e2:
+                    LOGGER(__name__).error(f"Upload failed with fallback: {e2}, trying without thumbnail")
+                    await message.reply_video(
+                        media_path,
+                        duration=duration,
+                        width=width,
+                        height=height,
+                        thumb=None,
+                        caption=caption or "",
+                        progress=Leaves.progress_for_pyrogram,
+                        progress_args=progress_args,
+                    )
+            else:
+                LOGGER(__name__).info("Retrying without thumbnail")
+                await message.reply_video(
+                    media_path,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                    thumb=None,
+                    caption=caption or "",
+                    progress=Leaves.progress_for_pyrogram,
+                    progress_args=progress_args,
+                )
+        
+        # Clean up thumbnails after upload
+        if custom_thumb_path and os.path.exists(custom_thumb_path):
+            try:
+                os.remove(custom_thumb_path)
+            except:
+                pass
+        if fallback_thumb and os.path.exists(fallback_thumb):
+            try:
+                os.remove(fallback_thumb)
+            except:
+                pass
     elif media_type == "audio":
         duration, artist, title = await get_media_info(media_path)
         await message.reply_audio(

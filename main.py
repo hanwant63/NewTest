@@ -43,7 +43,7 @@ from config import PyroConf
 from logger import LOGGER
 from database import db
 from phone_auth import PhoneAuthHandler
-from access_control import admin_only, paid_or_admin_only, check_download_limit, register_user, check_user_session, get_user_client
+from access_control import admin_only, paid_or_admin_only, check_download_limit, register_user, check_user_session, get_user_client, force_subscribe
 from admin_commands import (
     add_admin_command,
     remove_admin_command,
@@ -292,6 +292,7 @@ async def handle_download(bot: Client, message: Message, post_url: str, user_cli
                 pass
 
 @bot.on_message(filters.command("dl") & filters.private)
+@force_subscribe
 @check_download_limit
 async def download_media(bot: Client, message: Message):
     if len(message.command) < 2:
@@ -306,6 +307,7 @@ async def download_media(bot: Client, message: Message):
     await track_task(handle_download(bot, message, post_url, user_client, True))
 
 @bot.on_message(filters.command("bdl") & filters.private)
+@force_subscribe
 @paid_or_admin_only
 async def download_range(bot: Client, message: Message):
     args = message.text.split()
@@ -517,6 +519,7 @@ async def cancel_command(client: Client, message: Message):
     await message.reply(msg)
 
 @bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
+@force_subscribe
 @check_download_limit
 async def handle_any_message(bot: Client, message: Message):
     if message.text and not message.text.startswith("/"):

@@ -22,4 +22,6 @@ class PyroConf:
     except ValueError:
         OWNER_ID = 0
 
+    FORCE_SUBSCRIBE_CHANNEL = os.getenv("FORCE_SUBSCRIBE_CHANNEL", "")
+
     BOT_START_TIME = time()

@@ -2,9 +2,11 @@
 # Channel: https://t.me/Wolfy004
 
 from functools import wraps
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired, ChannelPrivate
 from database import db
 from logger import LOGGER
+from config import PyroConf
 
 def admin_only(func):
     """Decorator to restrict command to admins only"""
@@ -152,3 +154,59 @@ async def get_user_client(user_id: int):
             db.set_user_session(user_id, None)
             return None
     return None
+
+def force_subscribe(func):
+    """Decorator to enforce channel subscription before using bot features"""
+    @wraps(func)
+    async def wrapper(client, message: Message):
+        # Skip if no force subscribe channel is configured
+        if not PyroConf.FORCE_SUBSCRIBE_CHANNEL:
+            return await func(client, message)
+        
+        user_id = message.from_user.id
+        
+        # Admins and owner bypass force subscribe
+        if db.is_admin(user_id) or user_id == PyroConf.OWNER_ID:
+            return await func(client, message)
+        
+        # Check if user is member of the channel
+        try:
+            channel = PyroConf.FORCE_SUBSCRIBE_CHANNEL
+            # Remove @ if present
+            if channel.startswith('@'):
+                channel = channel[1:]
+            
+            member = await client.get_chat_member(f"@{channel}", user_id)
+            
+            # If user is member (any status except kicked/left), allow access
+            if member.status not in ["kicked", "left"]:
+                return await func(client, message)
+                
+        except UserNotParticipant:
+            pass  # User not in channel, show join message
+        except (ChatAdminRequired, ChannelPrivate) as e:
+            LOGGER(__name__).error(f"Bot lacks permission to check channel membership: {e}")
+            # If bot can't check, allow access (don't block users due to config error)
+            return await func(client, message)
+        except Exception as e:
+            LOGGER(__name__).error(f"Error checking channel membership: {e}")
+            return await func(client, message)
+        
+        # User is not subscribed, show join message
+        channel_username = PyroConf.FORCE_SUBSCRIBE_CHANNEL
+        if not channel_username.startswith('@'):
+            channel_username = f"@{channel_username}"
+        
+        join_button = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{channel_username.replace('@', '')}")]
+        ])
+        
+        await message.reply(
+            f"❌ **Access Denied!**\n\n"
+            f"🔒 You must join our channel to use this bot.\n\n"
+            f"👉 **Channel:** {channel_username}\n\n"
+            f"After joining, try your command again!",
+            reply_markup=join_button
+        )
+    
+    return wrapper

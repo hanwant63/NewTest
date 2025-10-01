@@ -80,14 +80,38 @@ user = Client(
 phone_auth_handler = PhoneAuthHandler(PyroConf.API_ID, PyroConf.API_HASH)
 
 RUNNING_TASKS = set()
+USER_TASKS = {}
 
-def track_task(coro):
+def track_task(coro, user_id=None):
     task = asyncio.create_task(coro)
     RUNNING_TASKS.add(task)
+    
+    if user_id:
+        if user_id not in USER_TASKS:
+            USER_TASKS[user_id] = set()
+        USER_TASKS[user_id].add(task)
+    
     def _remove(_):
         RUNNING_TASKS.discard(task)
+        if user_id and user_id in USER_TASKS:
+            USER_TASKS[user_id].discard(task)
+            if not USER_TASKS[user_id]:
+                del USER_TASKS[user_id]
+    
     task.add_done_callback(_remove)
     return task
+
+def get_user_tasks(user_id):
+    return USER_TASKS.get(user_id, set())
+
+def cancel_user_tasks(user_id):
+    tasks = get_user_tasks(user_id)
+    cancelled = 0
+    for task in list(tasks):
+        if not task.done():
+            task.cancel()
+            cancelled += 1
+    return cancelled
 
 # Auto-add OWNER_ID as admin on startup
 @bot.on_message(filters.command("start") & filters.create(lambda _, __, m: m.from_user.id == PyroConf.OWNER_ID), group=-1)
@@ -125,6 +149,9 @@ async def help_command(_, message: Message):
         "   – Send `/bdl start_link end_link` to grab a series of posts in one go.\n"
         "     💡 Example: `/bdl https://t.me/mychannel/100 https://t.me/mychannel/120`\n"
         "**It will download all posts from ID 100 to 120.**\n\n"
+        "➤ **Cancel Downloads**\n"
+        "   – `/canceldownload` - Cancel all your running downloads\n"
+        "   – Note: You can only run one batch at a time\n\n"
         "➤ **Login with Phone Number**\n"
         "   – `/login +1234567890` - Start login process\n"
         "   – `/verify 1 2 3 4 5` - Enter OTP with spaces between digits\n"
@@ -304,7 +331,7 @@ async def download_media(bot: Client, message: Message):
     # Check if user has personal session
     user_client = await get_user_client(message.from_user.id)
 
-    await track_task(handle_download(bot, message, post_url, user_client, True))
+    await track_task(handle_download(bot, message, post_url, user_client, True), message.from_user.id)
 
 @bot.on_message(filters.command("bdl") & filters.private)
 @force_subscribe
@@ -320,6 +347,17 @@ async def download_range(bot: Client, message: Message):
             "`/bdl https://t.me/mychannel/100 https://t.me/mychannel/120`"
         )
         return
+
+    # Check if user already has a batch running
+    user_tasks = get_user_tasks(message.from_user.id)
+    if user_tasks:
+        running_count = sum(1 for task in user_tasks if not task.done())
+        if running_count > 0:
+            await message.reply(
+                f"❌ **You already have {running_count} download(s) running!**\n\n"
+                "Please wait for them to finish or use `/canceldownload` to cancel them."
+            )
+            return
 
     try:
         start_chat, start_id = getChatMsgID(args[1])
@@ -375,7 +413,7 @@ async def download_range(bot: Client, message: Message):
                 skipped += 1
                 continue
 
-            task = track_task(handle_download(bot, message, url, client_to_use, False, cleanup_client=False))
+            task = track_task(handle_download(bot, message, url, client_to_use, False, cleanup_client=False), message.from_user.id)
             try:
                 await task
                 downloaded += 1
@@ -532,7 +570,21 @@ async def cancel_command(client: Client, message: Message):
     success, msg = await phone_auth_handler.cancel_auth(message.from_user.id)
     await message.reply(msg)
 
-@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
+@bot.on_message(filters.command("canceldownload") & filters.private)
+@register_user
+async def cancel_download_command(client: Client, message: Message):
+    """Cancel user's running downloads"""
+    cancelled = cancel_user_tasks(message.from_user.id)
+    if cancelled > 0:
+        await message.reply(
+            f"✅ **Cancelled {cancelled} download(s)!**\n\n"
+            "You can start new downloads now."
+        )
+        LOGGER(__name__).info(f"User {message.from_user.id} cancelled {cancelled} download(s)")
+    else:
+        await message.reply("ℹ️ **You have no active downloads to cancel.**")
+
+@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "canceldownload", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
 @force_subscribe
 @check_download_limit
 async def handle_any_message(bot: Client, message: Message):
@@ -540,7 +592,7 @@ async def handle_any_message(bot: Client, message: Message):
         # Check if user has personal session
         user_client = await get_user_client(message.from_user.id)
 
-        await track_task(handle_download(bot, message, message.text, user_client, True))
+        await track_task(handle_download(bot, message, message.text, user_client, True), message.from_user.id)
 
 @bot.on_message(filters.command("stats") & filters.private)
 @register_user

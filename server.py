@@ -38,6 +38,6 @@ if __name__ == '__main__':
     bot_process = Process(target=run_bot)
     bot_process.start()
     
-    # Start Flask server (satisfies Render's port requirement)
-    port = int(os.environ.get('PORT', 10000))
+    # Start Flask server on port 5000 for Replit
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

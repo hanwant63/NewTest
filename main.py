@@ -697,8 +697,6 @@ async def callback_handler(client: Client, callback_query: CallbackQuery):
 if __name__ == "__main__":
     try:
         LOGGER(__name__).info("Bot Started!")
-        if user:
-            user.start()
         bot.run()
     except KeyboardInterrupt:
         pass

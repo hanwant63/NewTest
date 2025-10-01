@@ -7,3 +7,11 @@ pillow
 pyrogram
 uvloop
 flask
+pillow
+psutil
+Pyleaves
+Pyrofork
+pyrogram
+python-dotenv
+TgCrypto
+uvloop

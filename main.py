@@ -159,10 +159,12 @@ async def help_command(_, message: Message):
         "   – `/logout` - Logout from your account\n"
         "   – `/cancel` - Cancel pending authentication\n\n"
         "➤ **User Commands**\n"
-        "   – `/myinfo` - View your account information\n\n"
+        "   – `/myinfo` - View your account information\n"
+        "   – `/upgrade` - Get premium subscription info\n\n"
         "➤ **Limits**\n"
         "   – Free users: 5 downloads per day\n"
-        "   – Premium users: Unlimited downloads\n\n"
+        "   – Premium users: Unlimited downloads\n"
+        "   – Batch download: Max 20 posts at a time\n\n"
         "➤ **If the bot hangs**\n"
         "   – Send `/killall` to cancel any pending downloads (Admin only).\n\n"
         "➤ **Logs**\n"
@@ -369,6 +371,15 @@ async def download_range(bot: Client, message: Message):
         return await message.reply("**❌ Both links must be from the same channel.**")
     if start_id > end_id:
         return await message.reply("**❌ Invalid range: start ID cannot exceed end ID.**")
+    
+    # Limit batch to 20 posts at a time
+    batch_count = end_id - start_id + 1
+    if batch_count > 20:
+        return await message.reply(
+            f"**❌ Batch limit exceeded!**\n\n"
+            f"You requested `{batch_count}` posts, but the maximum is **20 posts** at a time.\n\n"
+            f"Please reduce your range and try again."
+        )
 
     # Check if user has personal session
     user_client = await get_user_client(message.from_user.id)
@@ -584,7 +595,7 @@ async def cancel_download_command(client: Client, message: Message):
     else:
         await message.reply("ℹ️ **You have no active downloads to cancel.**")
 
-@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "canceldownload", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
+@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "upgrade", "premiumlist", "login", "verify", "password", "logout", "cancel", "canceldownload", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
 @force_subscribe
 @check_download_limit
 async def handle_any_message(bot: Client, message: Message):
@@ -736,6 +747,80 @@ async def broadcast_handler(client: Client, message: Message):
 @bot.on_message(filters.command("adminstats") & filters.private)
 async def admin_stats_handler(client: Client, message: Message):
     await admin_stats_command(client, message)
+
+@bot.on_message(filters.command("upgrade") & filters.private)
+@register_user
+async def upgrade_command(client: Client, message: Message):
+    """Show premium upgrade information with pricing and payment details"""
+    upgrade_text = (
+        "💎 **Upgrade to Premium**\n\n"
+        "**Premium Features:**\n"
+        "✅ Unlimited downloads per day\n"
+        "✅ Batch download support (/bdl command)\n"
+        "✅ Download up to 20 posts at once\n"
+        "✅ Priority support\n"
+        "✅ No daily limits\n\n"
+        "**Pricing:**\n"
+        "💰 **30 Days Premium = $1 USD**\n\n"
+        "**How to Upgrade:**\n"
+    )
+    
+    # Add payment information if configured
+    if PyroConf.PAYPAL_URL or PyroConf.UPI_ID:
+        upgrade_text += "1️⃣ **Make Payment:**\n"
+        
+        if PyroConf.PAYPAL_URL:
+            upgrade_text += f"   💳 PayPal: {PyroConf.PAYPAL_URL}\n"
+        
+        if PyroConf.UPI_ID:
+            upgrade_text += f"   📱 UPI: `{PyroConf.UPI_ID}`\n"
+        
+        upgrade_text += "\n"
+    
+    # Add contact information
+    if PyroConf.ADMIN_USERNAME:
+        upgrade_text += f"2️⃣ **Contact Admin:**\n   👤 @{PyroConf.ADMIN_USERNAME}\n\n"
+    else:
+        upgrade_text += f"2️⃣ **Contact Admin:**\n   👤 Contact the bot owner\n\n"
+    
+    upgrade_text += (
+        "3️⃣ **Send Payment Proof:**\n"
+        "   Send screenshot/transaction ID to admin\n\n"
+        "4️⃣ **Get Activated:**\n"
+        "   Admin will activate your premium within 24 hours!\n\n"
+        "**Note:** Premium subscription is valid for 30 days from activation."
+    )
+    
+    await message.reply(upgrade_text, disable_web_page_preview=True)
+
+@bot.on_message(filters.command("premiumlist") & filters.private)
+async def premium_list_command(client: Client, message: Message):
+    """Show list of all premium users (Owner only)"""
+    if message.from_user.id != PyroConf.OWNER_ID:
+        await message.reply("❌ **This command is only available to the bot owner.**")
+        return
+    
+    premium_users = db.get_premium_users()
+    
+    if not premium_users:
+        await message.reply("ℹ️ **No premium users found.**")
+        return
+    
+    premium_text = "💎 **Premium Users List**\n\n"
+    
+    for idx, user in enumerate(premium_users, 1):
+        user_id = user.get('user_id', 'Unknown')
+        username = user.get('username', 'N/A')
+        expiry_date = user.get('premium_expiry', 'N/A')
+        
+        premium_text += f"{idx}. **User ID:** `{user_id}`\n"
+        if username and username != 'N/A':
+            premium_text += f"   **Username:** @{username}\n"
+        premium_text += f"   **Expires:** {expiry_date}\n\n"
+    
+    premium_text += f"**Total Premium Users:** {len(premium_users)}"
+    
+    await message.reply(premium_text)
 
 @bot.on_message(filters.command("myinfo") & filters.private)
 async def myinfo_handler(client: Client, message: Message):

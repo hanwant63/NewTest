@@ -397,6 +397,24 @@ class DatabaseManager:
         except Exception as e:
             LOGGER(__name__).error(f"Error deleting custom thumbnail for {user_id}: {e}")
             return False
+    
+    def get_premium_users(self) -> List[Dict]:
+        """Get list of all premium (paid) users with active subscriptions"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT user_id, username, subscription_end as premium_expiry
+                    FROM users
+                    WHERE user_type = 'paid' AND subscription_end > date('now')
+                    ORDER BY subscription_end DESC
+                ''')
+                rows = cursor.fetchall()
+                columns = [desc[0] for desc in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+        except Exception as e:
+            LOGGER(__name__).error(f"Error getting premium users: {e}")
+            return []
 
 # Initialize database
 db = DatabaseManager()

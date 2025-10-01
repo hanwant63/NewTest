@@ -24,4 +24,9 @@ class PyroConf:
 
     FORCE_SUBSCRIBE_CHANNEL = os.getenv("FORCE_SUBSCRIBE_CHANNEL", "")
 
+    # Payment and Contact Configuration
+    ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "")
+    PAYPAL_URL = os.getenv("PAYPAL_URL", "")
+    UPI_ID = os.getenv("UPI_ID", "")
+
     BOT_START_TIME = time()

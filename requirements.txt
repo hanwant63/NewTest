@@ -6,3 +6,4 @@ psutil
 pillow
 pyrogram
 uvloop
+flask

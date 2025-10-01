@@ -25,7 +25,9 @@ class PhoneAuthHandler:
             client = Client(
                 session_name,
                 api_id=self.api_id,
-                api_hash=self.api_hash
+                api_hash=self.api_hash,
+                workers=8,
+                max_concurrent_transmissions=8
             )
 
             await client.connect()

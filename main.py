@@ -7,6 +7,12 @@ import psutil
 import asyncio
 from time import time
 
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
+
 from pyleaves import Leaves
 from pyrogram.enums import ParseMode
 from pyrogram import Client, filters
@@ -51,18 +57,24 @@ from admin_commands import (
     broadcast_callback_handler
 )
 
-# Initialize the bot client
+# Initialize the bot client with optimized settings for faster downloads/uploads
 bot = Client(
     "media_bot",
     api_id=PyroConf.API_ID,
     api_hash=PyroConf.API_HASH,
     bot_token=PyroConf.BOT_TOKEN,
-    workers=1000,
+    workers=8,
+    max_concurrent_transmissions=8,
     parse_mode=ParseMode.MARKDOWN,
 )
 
-# Client for user session (optional fallback)
-user = Client("user_session", workers=1000, session_string=PyroConf.SESSION_STRING) if PyroConf.SESSION_STRING else None
+# Client for user session (optional fallback) with optimized settings
+user = Client(
+    "user_session", 
+    workers=8,
+    max_concurrent_transmissions=8,
+    session_string=PyroConf.SESSION_STRING
+) if PyroConf.SESSION_STRING else None
 
 # Phone authentication handler
 phone_auth_handler = PhoneAuthHandler(PyroConf.API_ID, PyroConf.API_HASH)
@@ -250,6 +262,7 @@ async def handle_download(bot: Client, message: Message, post_url: str, user_cli
                 parsed_caption,
                 progress_message,
                 start_time,
+                message.from_user.id,
             )
 
             cleanup_download(media_path)
@@ -503,7 +516,7 @@ async def cancel_command(client: Client, message: Message):
     success, msg = await phone_auth_handler.cancel_auth(message.from_user.id)
     await message.reply(msg)
 
-@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
+@bot.on_message(filters.private & ~filters.command(["start", "help", "dl", "stats", "logs", "killall", "bdl", "myinfo", "login", "verify", "password", "logout", "cancel", "setthumb", "delthumb", "viewthumb", "addadmin", "removeadmin", "setpremium", "removepremium", "ban", "unban", "broadcast", "adminstats", "userinfo"]))
 @check_download_limit
 async def handle_any_message(bot: Client, message: Message):
     if message.text and not message.text.startswith("/"):
@@ -559,6 +572,68 @@ async def cancel_all_tasks(_, message: Message):
             task.cancel()
             cancelled += 1
     await message.reply(f"**Cancelled {cancelled} running task(s).**")
+
+# Thumbnail commands
+@bot.on_message(filters.command("setthumb") & filters.private)
+@register_user
+async def set_thumbnail(_, message: Message):
+    """Set custom thumbnail for video uploads"""
+    if message.reply_to_message and message.reply_to_message.photo:
+        # User replied to a photo
+        photo = message.reply_to_message.photo
+        file_id = photo.file_id
+        
+        if db.set_custom_thumbnail(message.from_user.id, file_id):
+            await message.reply(
+                "✅ **Custom thumbnail saved successfully!**\n\n"
+                "This thumbnail will be used for all your video downloads.\n\n"
+                "Use `/delthumb` to remove it."
+            )
+            LOGGER(__name__).info(f"User {message.from_user.id} set custom thumbnail")
+        else:
+            await message.reply("❌ **Failed to save thumbnail. Please try again.**")
+    else:
+        await message.reply(
+            "📸 **How to set a custom thumbnail:**\n\n"
+            "1. Send or forward a photo to the bot\n"
+            "2. Reply to that photo with `/setthumb`\n\n"
+            "The photo will be used as thumbnail for all your video downloads."
+        )
+
+@bot.on_message(filters.command("delthumb") & filters.private)
+@register_user
+async def delete_thumbnail(_, message: Message):
+    """Delete custom thumbnail"""
+    if db.delete_custom_thumbnail(message.from_user.id):
+        await message.reply(
+            "✅ **Custom thumbnail removed!**\n\n"
+            "Videos will now use auto-generated thumbnails from the video itself."
+        )
+        LOGGER(__name__).info(f"User {message.from_user.id} deleted custom thumbnail")
+    else:
+        await message.reply("ℹ️ **You don't have a custom thumbnail set.**")
+
+@bot.on_message(filters.command("viewthumb") & filters.private)
+@register_user
+async def view_thumbnail(_, message: Message):
+    """View current custom thumbnail"""
+    thumb_id = db.get_custom_thumbnail(message.from_user.id)
+    if thumb_id:
+        try:
+            await message.reply_photo(
+                thumb_id,
+                caption="**Your current custom thumbnail**\n\nUse `/delthumb` to remove it."
+            )
+        except:
+            await message.reply(
+                "⚠️ **Thumbnail exists but couldn't be displayed.**\n\n"
+                "It might have expired. Please set a new one with `/setthumb`"
+            )
+    else:
+        await message.reply(
+            "ℹ️ **You don't have a custom thumbnail set.**\n\n"
+            "Use `/setthumb` to set one."
+        )
 
 # Admin commands
 @bot.on_message(filters.command("addadmin") & filters.private)

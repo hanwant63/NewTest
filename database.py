@@ -32,9 +32,16 @@ class DatabaseManager:
                     joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_banned BOOLEAN DEFAULT FALSE,
-                    session_string TEXT
+                    session_string TEXT,
+                    custom_thumbnail TEXT
                 )
             ''')
+            
+            # Add custom_thumbnail column if it doesn't exist (for existing databases)
+            try:
+                cursor.execute('ALTER TABLE users ADD COLUMN custom_thumbnail TEXT')
+            except:
+                pass  # Column already exists
 
             # Daily usage tracking
             cursor.execute('''
@@ -74,8 +81,8 @@ class DatabaseManager:
             conn.commit()
             LOGGER(__name__).info("Database initialized successfully")
 
-    def add_user(self, user_id: int, username: str = None, first_name: str = None,
-                 last_name: str = None, user_type: str = 'free') -> bool:
+    def add_user(self, user_id: int, username: Optional[str] = None, first_name: Optional[str] = None,
+                 last_name: Optional[str] = None, user_type: str = 'free') -> bool:
         """Add new user or update basic profile information (preserves roles and settings)"""
         try:
             with self.get_connection() as conn:
@@ -176,7 +183,7 @@ class DatabaseManager:
     def set_user_type(self, user_id: int, user_type: str, days: int = 30) -> bool:
         """Set user type and subscription"""
         try:
-            subscription_end = None
+            subscription_end: Optional[str] = None
             if user_type == 'paid':
                 subscription_end = (datetime.now() + timedelta(days=days)).strftime('%Y-%m-%d')
 
@@ -192,7 +199,7 @@ class DatabaseManager:
             LOGGER(__name__).error(f"Error setting user type for {user_id}: {e}")
             return False
 
-    def get_daily_usage(self, user_id: int, date: str = None) -> int:
+    def get_daily_usage(self, user_id: int, date: Optional[str] = None) -> int:
         """Get daily file download count"""
         if not date:
             date = datetime.now().strftime('%Y-%m-%d')
@@ -295,9 +302,9 @@ class DatabaseManager:
     def is_banned(self, user_id: int) -> bool:
         """Check if user is banned"""
         user = self.get_user(user_id)
-        return user and user.get('is_banned', False)
+        return bool(user and user.get('is_banned', False))
 
-    def set_user_session(self, user_id: int, session_string: str = None) -> bool:
+    def set_user_session(self, user_id: int, session_string: Optional[str] = None) -> bool:
         """Set user's session string for accessing restricted content (None to logout)"""
         try:
             with self.get_connection() as conn:
@@ -357,6 +364,39 @@ class DatabaseManager:
         except Exception as e:
             LOGGER(__name__).error(f"Error getting stats: {e}")
             return {}
+    
+    def set_custom_thumbnail(self, user_id: int, file_id: str) -> bool:
+        """Set custom thumbnail for user"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE users SET custom_thumbnail = ? WHERE user_id = ?
+                ''', (file_id, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            LOGGER(__name__).error(f"Error setting custom thumbnail for {user_id}: {e}")
+            return False
+    
+    def get_custom_thumbnail(self, user_id: int) -> Optional[str]:
+        """Get user's custom thumbnail file_id"""
+        user = self.get_user(user_id)
+        return user.get('custom_thumbnail') if user else None
+    
+    def delete_custom_thumbnail(self, user_id: int) -> bool:
+        """Delete custom thumbnail for user"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE users SET custom_thumbnail = NULL WHERE user_id = ?
+                ''', (user_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            LOGGER(__name__).error(f"Error deleting custom thumbnail for {user_id}: {e}")
+            return False
 
 # Initialize database
 db = DatabaseManager()

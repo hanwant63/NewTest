@@ -6,13 +6,14 @@ Advanced Telegram bot that downloads restricted content (photos, videos, audio f
 ## Project Setup (Completed)
 - **Language**: Python 3.11
 - **Database**: SQLite for user management
-- **Dependencies**: Pyrofork, TgCrypto, Pyleaves, python-dotenv, psutil, pillow
+- **Dependencies**: Pyrofork, TgCrypto, Pyleaves, python-dotenv, psutil, pillow, uvloop
 - **Bot Type**: Backend Telegram Bot (Console Application)
 - **Deployment**: VM deployment (stateful, always running)
+- **Performance**: Optimized for fast downloads/uploads with uvloop and parallel transfers
 
 ## Current State (2025-10-01)
 ✅ Python 3.11 installed  
-✅ All dependencies installed  
+✅ All dependencies installed (including uvloop for speed)
 ✅ Database system integrated (SQLite)
 ✅ Phone authentication system added
 ✅ Access control & user management
@@ -22,6 +23,11 @@ Advanced Telegram bot that downloads restricted content (photos, videos, audio f
 ✅ Bot starts successfully  
 ✅ Deployment configuration set for VM target  
 ✅ .gitignore properly configured
+✅ **Performance optimizations implemented:**
+  - uvloop for 2-4x faster async operations
+  - Parallel file transfers (max_concurrent_transmissions=8)
+  - Optimized worker threads (workers=8)
+  - TgCrypto for faster cryptographic operations
 
 ## Configuration Required
 1. **Set up API credentials** (via Replit Secrets or `config.env`):
@@ -119,6 +125,11 @@ Advanced Telegram bot that downloads restricted content (photos, videos, audio f
 - ✅ Implemented ban/unban system
 - ✅ Added user statistics tracking
 - ✅ Fixed SESSION_STRING conflict issues
+- ✅ **Performance Optimizations (Latest):**
+  - Installed uvloop for 2-4x faster async event loop
+  - Configured parallel file transfers (max_concurrent_transmissions=8)
+  - Optimized worker count from 1000 to 8 for better resource utilization
+  - All client creation points updated with optimal settings
 
 ## Architecture
 

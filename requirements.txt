@@ -4,10 +4,5 @@ Pyleaves
 python-dotenv
 psutil
 pillow
-pillow
-psutil
-Pyleaves
-Pyrofork
 pyrogram
-python-dotenv
-TgCrypto
+uvloop

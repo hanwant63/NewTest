@@ -140,6 +140,8 @@ async def get_user_client(user_id: int):
                 api_id=PyroConf.API_ID,
                 api_hash=PyroConf.API_HASH,
                 session_string=session,
+                workers=8,
+                max_concurrent_transmissions=8,
                 in_memory=True  # Use in-memory sessions to avoid file leaks
             )
             await user_client.start()

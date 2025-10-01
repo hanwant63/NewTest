@@ -4,7 +4,7 @@ This satisfies Render's port binding requirement while keeping the bot running
 """
 import os
 import sys
-from multiprocessing import Process
+from multiprocessing import Process, set_start_method
 from flask import Flask, jsonify
 
 app = Flask(__name__)
@@ -22,12 +22,20 @@ def health():
     return jsonify({'status': 'healthy'}), 200
 
 def run_bot():
-    """Run the Telegram bot in a separate process"""
+    """Run the Telegram bot in a separate process with long polling"""
     import main
+    main.LOGGER(__name__).info("Starting Telegram bot from server.py (long polling)")
+    main.bot.run()
 
 if __name__ == '__main__':
-    # Start bot in background process
-    bot_process = Process(target=run_bot, daemon=True)
+    # Set multiprocessing start method for better compatibility
+    try:
+        set_start_method("spawn")
+    except RuntimeError:
+        pass
+    
+    # Start bot in background process (not daemon so it stays alive)
+    bot_process = Process(target=run_bot)
     bot_process.start()
     
     # Start Flask server (satisfies Render's port requirement)

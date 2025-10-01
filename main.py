@@ -152,7 +152,7 @@ async def help_command(_, message: Message):
     )
     await message.reply(help_text, reply_markup=markup, disable_web_page_preview=True)
 
-async def handle_download(bot: Client, message: Message, post_url: str, user_client=None, increment_usage=True):
+async def handle_download(bot: Client, message: Message, post_url: str, user_client=None, increment_usage=True, cleanup_client=True):
     # Cut off URL at '?' if present
     if "?" in post_url:
         post_url = post_url.split("?", 1)[0]
@@ -284,8 +284,8 @@ async def handle_download(bot: Client, message: Message, post_url: str, user_cli
         await message.reply(error_message)
         LOGGER(__name__).error(e)
     finally:
-        # Clean up user client if it was created
-        if user_client and user_client != user:
+        # Clean up user client only if cleanup is enabled (not in batch mode)
+        if cleanup_client and user_client and user_client != user:
             try:
                 await user_client.stop()
             except:
@@ -375,7 +375,7 @@ async def download_range(bot: Client, message: Message):
                 skipped += 1
                 continue
 
-            task = track_task(handle_download(bot, message, url, user_client, False))
+            task = track_task(handle_download(bot, message, url, client_to_use, False, cleanup_client=False))
             try:
                 await task
                 downloaded += 1
@@ -383,6 +383,12 @@ async def download_range(bot: Client, message: Message):
                 db.increment_usage(message.from_user.id)
             except asyncio.CancelledError:
                 await loading.delete()
+                # Clean up client before returning
+                if user_client and user_client != user:
+                    try:
+                        await user_client.stop()
+                    except:
+                        pass
                 return await message.reply(
                     f"**❌ Batch canceled** after downloading `{downloaded}` posts."
                 )
@@ -394,6 +400,14 @@ async def download_range(bot: Client, message: Message):
         await asyncio.sleep(3)
 
     await loading.delete()
+    
+    # Clean up user client after batch completes
+    if user_client and user_client != user:
+        try:
+            await user_client.stop()
+        except:
+            pass
+    
     await message.reply(
         "**✅ Batch Process Complete!**\n"
         "━━━━━━━━━━━━━━━━━━━\n"

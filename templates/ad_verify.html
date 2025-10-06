@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Ads - Get Premium Free</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .ad-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 15px;
+            min-height: 650px;
+        }
+        .ad-container iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 10px;
+        }
+        .code-box {
+            background: #4CAF50;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin: 25px 0;
+            word-break: break-all;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .timer {
+            font-size: 56px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 25px 0;
+        }
+        .instruction {
+            color: #666;
+            margin: 15px 0;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+        .error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 15px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .ad-step-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+            border-radius: 8px;
+        }
+        .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Step 1: Instructions -->
+        <div class="step active" id="step1">
+            <h1>🎁 Get FREE Premium Access</h1>
+            <p class="instruction">
+                Complete a quick verification and watch short ads to unlock <strong>30 minutes</strong> of premium access!
+            </p>
+            <div class="ad-step-info">
+                <strong>📋 What to expect:</strong><br>
+                {% if verification_url %}
+                ✅ Step 1: Human verification (10 seconds)<br>
+                {% endif %}
+                {% if ad1_url %}
+                ✅ Step {% if verification_url %}2{% else %}1{% endif %}: Watch Ad Type 1 (30 seconds)<br>
+                {% endif %}
+                {% if ad2_url %}
+                ✅ Step {% if verification_url %}{% if ad1_url %}3{% else %}2{% endif %}{% else %}{% if ad1_url %}2{% else %}1{% endif %}{% endif %}: Watch Ad Type 2 (30 seconds)<br>
+                {% endif %}
+                {% if ad3_url %}
+                ✅ Step {% if verification_url %}{% if ad1_url %}{% if ad2_url %}4{% else %}3{% endif %}{% else %}{% if ad2_url %}3{% else %}2{% endif %}{% endif %}{% else %}{% if ad1_url %}{% if ad2_url %}3{% else %}2{% endif %}{% else %}{% if ad2_url %}2{% else %}1{% endif %}{% endif %}{% endif %}: Watch Ad Type 3 (30 seconds)<br>
+                {% endif %}
+                ✅ Final Step: Get your verification code!
+            </div>
+            <div class="warning">
+                ⚠️ <strong>Important:</strong> You must complete all steps to receive your premium code. Don't close or refresh this page!
+            </div>
+            <button class="btn" onclick="startProcess()">🚀 Start Now - Get Premium Free!</button>
+        </div>
+
+        <!-- Step 2: Human Verification -->
+        {% if verification_url %}
+        <div class="step" id="stepVerification">
+            <h1>🔒 Human Verification</h1>
+            <div class="badge">Step 1</div>
+            <p class="instruction">Please complete this quick verification to prove you're human</p>
+            
+            <div class="ad-container">
+                <iframe id="verificationFrame" src="{{ verification_url }}"></iframe>
+            </div>
+            
+            <p class="instruction">Time remaining:</p>
+            <div class="timer" id="verificationTimer">10</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="verificationProgress"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Step 3: Ad Type 1 -->
+        {% if ad1_url %}
+        <div class="step" id="stepAd1">
+            <h1>📺 Watching Ad - Type 1</h1>
+            <div class="badge">{% if verification_url %}Step 2{% else %}Step 1{% endif %}</div>
+            <p class="instruction">Please watch this ad completely to continue</p>
+            
+            <div class="ad-container">
+                <iframe id="ad1Frame" src=""></iframe>
+            </div>
+            
+            <p class="instruction">Time remaining:</p>
+            <div class="timer" id="ad1Timer">30</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="ad1Progress"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Step 4: Ad Type 2 -->
+        {% if ad2_url %}
+        <div class="step" id="stepAd2">
+            <h1>📺 Watching Ad - Type 2</h1>
+            <div class="badge">Step {% if verification_url %}{% if ad1_url %}3{% else %}2{% endif %}{% else %}{% if ad1_url %}2{% else %}1{% endif %}{% endif %}</div>
+            <p class="instruction">Almost there! Watch this ad to continue</p>
+            
+            <div class="ad-container">
+                <iframe id="ad2Frame" src=""></iframe>
+            </div>
+            
+            <p class="instruction">Time remaining:</p>
+            <div class="timer" id="ad2Timer">30</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="ad2Progress"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Step 5: Ad Type 3 -->
+        {% if ad3_url %}
+        <div class="step" id="stepAd3">
+            <h1>📺 Watching Ad - Type 3</h1>
+            <div class="badge">Step {% if verification_url %}{% if ad1_url %}{% if ad2_url %}4{% else %}3{% endif %}{% else %}{% if ad2_url %}3{% else %}2{% endif %}{% endif %}{% else %}{% if ad1_url %}{% if ad2_url %}3{% else %}2{% endif %}{% else %}{% if ad2_url %}2{% else %}1{% endif %}{% endif %}{% endif %}</div>
+            <p class="instruction">Last one! Watch this final ad to get your code</p>
+            
+            <div class="ad-container">
+                <iframe id="ad3Frame" src=""></iframe>
+            </div>
+            
+            <p class="instruction">Time remaining:</p>
+            <div class="timer" id="ad3Timer">30</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="ad3Progress"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Step 6: Loading Code -->
+        <div class="step" id="stepLoading">
+            <h1>🔄 Generating Your Code...</h1>
+            <div class="loading"></div>
+            <p class="instruction" style="margin-top: 30px;">
+                Verifying your ad views and generating your premium code...<br>
+                This will only take a moment!
+            </p>
+        </div>
+
+        <!-- Step 7: Code Display -->
+        <div class="step" id="stepCode">
+            <h1>✅ Congratulations!</h1>
+            <div class="success">
+                🎉 You've successfully completed all ads! Here's your premium code:
+            </div>
+            <div class="code-box" id="codeDisplay">LOADING...</div>
+            <p class="instruction">
+                <strong>How to activate:</strong><br>
+                Copy the code above and send it to the bot using:<br>
+                <code style="background: #f5f5f5; padding: 8px 15px; border-radius: 8px; font-size: 16px; display: inline-block; margin-top: 10px;">
+                    /verifypremium <span id="codeExample">CODE</span>
+                </code>
+            </p>
+            <button class="btn" onclick="copyCode()">📋 Copy Code to Clipboard</button>
+            <p style="color: #999; font-size: 14px; margin-top: 25px;">
+                ⏰ Code expires in 30 minutes<br>
+                💎 Enjoy your 30 minutes of premium access!
+            </p>
+        </div>
+
+        <!-- Step 8: Error -->
+        <div class="step" id="stepError">
+            <h1>❌ Oops!</h1>
+            <div class="error" id="errorMessage">
+                Something went wrong. Please try again.
+            </div>
+            <button class="btn" onclick="location.reload()">🔄 Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const verificationUrl = "{{ verification_url }}";
+        const ad1Url = "{{ ad1_url }}";
+        const ad2Url = "{{ ad2_url }}";
+        const ad3Url = "{{ ad3_url }}";
+        const sessionId = "{{ session }}";
+        
+        let currentStep = 0;
+        let steps = [];
+        let timerInterval;
+        let startTime = null;
+        let verificationCode = null;
+
+        // Build steps array based on available ads
+        if (verificationUrl) steps.push({id: 'stepVerification', duration: 10, url: verificationUrl, iframe: 'verificationFrame', timer: 'verificationTimer', progress: 'verificationProgress'});
+        if (ad1Url) steps.push({id: 'stepAd1', duration: 30, url: ad1Url, iframe: 'ad1Frame', timer: 'ad1Timer', progress: 'ad1Progress'});
+        if (ad2Url) steps.push({id: 'stepAd2', duration: 30, url: ad2Url, iframe: 'ad2Frame', timer: 'ad2Timer', progress: 'ad2Progress'});
+        if (ad3Url) steps.push({id: 'stepAd3', duration: 30, url: ad3Url, iframe: 'ad3Frame', timer: 'ad3Timer', progress: 'ad3Progress'});
+
+        function startProcess() {
+            document.getElementById('step1').classList.remove('active');
+            startTime = new Date();
+            
+            if (steps.length > 0) {
+                showNextStep();
+            } else {
+                // No ads configured, directly get code
+                fetchVerificationCode();
+            }
+        }
+
+        function showNextStep() {
+            if (currentStep >= steps.length) {
+                // All steps completed
+                fetchVerificationCode();
+                return;
+            }
+
+            const step = steps[currentStep];
+            document.getElementById(step.id).classList.add('active');
+            
+            // Load ad/verification in iframe
+            document.getElementById(step.iframe).src = step.url;
+            
+            console.log(`Starting ${step.id} - Duration: ${step.duration}s`);
+            
+            // Start countdown
+            let timeLeft = step.duration;
+            const timerElement = document.getElementById(step.timer);
+            const progressElement = document.getElementById(step.progress);
+            
+            timerInterval = setInterval(function() {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                
+                // Update progress bar
+                const progressPercent = ((step.duration - timeLeft) / step.duration) * 100;
+                progressElement.style.width = progressPercent + '%';
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    console.log(`${step.id} completed`);
+                    
+                    // Hide current step and move to next
+                    document.getElementById(step.id).classList.remove('active');
+                    currentStep++;
+                    showNextStep();
+                }
+            }, 1000);
+        }
+
+        async function fetchVerificationCode() {
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            document.getElementById('stepLoading').classList.add('active');
+            
+            try {
+                const response = await fetch('/api/verify-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session: sessionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    verificationCode = data.code;
+                    showCode(verificationCode);
+                } else {
+                    showError(data.message);
+                }
+            } catch (error) {
+                console.error('Error fetching verification code:', error);
+                showError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        function showCode(code) {
+            document.getElementById('stepLoading').classList.remove('active');
+            document.getElementById('stepCode').classList.add('active');
+            document.getElementById('codeDisplay').textContent = code;
+            document.getElementById('codeExample').textContent = code;
+            console.log('Verification code displayed successfully');
+        }
+
+        function showError(message) {
+            document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+            document.getElementById('stepError').classList.add('active');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        function copyCode() {
+            if (!verificationCode) return;
+            
+            navigator.clipboard.writeText(verificationCode).then(function() {
+                alert('✅ Code copied to clipboard!\n\nNow go back to the bot and use:\n/verifypremium ' + verificationCode);
+            }).catch(function() {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = verificationCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ Code copied to clipboard!\n\nNow go back to the bot and use:\n/verifypremium ' + verificationCode);
+            });
+        }
+
+        // Prevent accidental page close during process
+        window.addEventListener('beforeunload', function(e) {
+            if (startTime && currentStep < steps.length) {
+                e.preventDefault();
+                e.returnValue = 'Are you sure? Your progress will be lost!';
+                return 'Are you sure? Your progress will be lost!';
+            }
+        });
+    </script>
+</body>
+</html>

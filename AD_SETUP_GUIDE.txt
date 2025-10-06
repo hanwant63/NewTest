@@ -1,0 +1,141 @@
+═══════════════════════════════════════════════════════════════
+   AD-BASED PREMIUM SETUP GUIDE
+═══════════════════════════════════════════════════════════════
+
+✅ FEATURE INSTALLED SUCCESSFULLY!
+
+Your bot now has TWO ways for users to get premium:
+1. Watch Ads (FREE - Temporary Premium)
+2. Pay $1 (30 Days Subscription)
+
+═══════════════════════════════════════════════════════════════
+📝 STEP 1: SIGN UP FOR MONETAG
+═══════════════════════════════════════════════════════════════
+
+1. Go to: https://monetag.com
+2. Click "Sign Up" (top right)
+3. Fill in your details:
+   - Email
+   - Password
+   - Choose "Publisher" as account type
+4. Verify your email
+5. Login to your dashboard
+
+═══════════════════════════════════════════════════════════════
+🎬 STEP 2: CREATE VIDEO AD ZONE
+═══════════════════════════════════════════════════════════════
+
+1. In Monetag dashboard, go to "Zones" or "Create Zone"
+2. Select ad format: "Direct Link" or "SmartLink"
+3. Configure:
+   - Website/Traffic Source: "Telegram Bot"
+   - Country: "India" (or your target country)
+   - Traffic Type: "Mobile"
+4. Create Zone
+5. Copy your ZONE ID (looks like: 123456 or ABC123)
+
+═══════════════════════════════════════════════════════════════
+⚙️ STEP 3: CONFIGURE YOUR BOT
+═══════════════════════════════════════════════════════════════
+
+1. In Replit Secrets, add:
+   Key: AD_ID
+   Value: <your zone ID from step 2>
+
+2. Click "Add new secret" button in Replit
+3. Restart your bot
+
+NOTE: Works with ANY ad network! Just use AD_ID for any service:
+- Monetag zone ID
+- Adsterra zone ID  
+- AdMaven zone ID
+- Any other ad network ID
+
+═══════════════════════════════════════════════════════════════
+⏰ HOW TO CHANGE PREMIUM DURATION (Hours)
+═══════════════════════════════════════════════════════════════
+
+📂 File: ad_monetization.py
+📍 Line: 7
+
+Change this line:
+   PREMIUM_DURATION_HOURS = 3
+
+To whatever you want:
+   PREMIUM_DURATION_HOURS = 1    (1 hour)
+   PREMIUM_DURATION_HOURS = 6    (6 hours)
+   PREMIUM_DURATION_HOURS = 24   (24 hours/1 day)
+
+After changing, restart your bot workflow.
+
+═══════════════════════════════════════════════════════════════
+🎯 BOT COMMANDS FOR USERS
+═══════════════════════════════════════════════════════════════
+
+/getpremium      → Get ad link for temporary premium
+/verifypremium   → Verify code after watching ad
+/upgrade         → See all premium options
+/myinfo          → Check premium status
+
+═══════════════════════════════════════════════════════════════
+💰 EARNINGS ESTIMATE (India)
+═══════════════════════════════════════════════════════════════
+
+Per User:     ₹8 - ₹30 ($0.10 - $0.40)
+100 users:    ₹800 - ₹3,000 per day
+1000 users:   ₹8,000 - ₹30,000 per day
+
+Payment Method: 
+- Bank transfer, PayPal, or Cryptocurrency
+- Minimum payout: Usually $50-$100
+
+═══════════════════════════════════════════════════════════════
+🔄 HOW IT WORKS
+═══════════════════════════════════════════════════════════════
+
+User Flow:
+1. User sends /getpremium
+2. Bot generates unique code + ad link
+3. User clicks link → watches ad (15-30 seconds)
+4. User gets verification code
+5. User sends /verifypremium <code>
+6. Bot verifies + grants premium for X hours
+7. You earn money from Monetag!
+
+═══════════════════════════════════════════════════════════════
+❓ TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+Q: Ad link not working?
+A: Make sure you added AD_ID to Replit Secrets
+
+Q: Want to change from 3 hours to 1 hour?
+A: Edit ad_monetization.py line 7, change the number
+
+Q: Can users get premium multiple times?
+A: Yes! After their premium expires, they can watch ads again
+
+Q: Does this replace the $1 subscription?
+A: No! Both options exist. Users can choose:
+   - Watch ads → Get temporary premium (FREE)
+   - Pay $1 → Get 30 days premium
+
+═══════════════════════════════════════════════════════════════
+📊 ALTERNATIVE AD NETWORKS (if Monetag doesn't work)
+═══════════════════════════════════════════════════════════════
+
+1. Adsterra (adsterra.com)
+2. AdMaven (ad-maven.com)  
+3. ExoClick (exoclick.com)
+
+Same setup process, just put their zone ID in AD_ID secret.
+
+═══════════════════════════════════════════════════════════════
+✅ THAT'S IT!
+═══════════════════════════════════════════════════════════════
+
+Your bot is ready to earn money from ads while giving users free premium!
+
+Questions? Check the code in:
+- ad_monetization.py (ad logic)
+- main.py (commands: /getpremium and /verifypremium)

@@ -1,0 +1,11 @@
+[06-Oct-25 11:45:42 AM - INFO] - __init__() - Line 22: database - Successfully connected to MongoDB!
+[06-Oct-25 11:45:44 AM - INFO] - init_database() - Line 53: database - Database indexes created successfully
+[06-Oct-25 11:45:46 AM - INFO] - __init__() - Line 36: queue_manager - Queue Manager initialized: 20 concurrent, 100 max queue
+[06-Oct-25 11:45:46 AM - INFO] - start_processor() - Line 42: queue_manager - Queue processor started
+[06-Oct-25 11:45:46 AM - INFO] - verify_and_log() - Line 62: attribution - Bot initialized - Creator: @Wolfy004
+[06-Oct-25 11:45:46 AM - INFO] - run_bot() - Line 57: __mp_main__ - Starting Telegram bot from server.py (long polling)
+[06-Oct-25 11:45:46 AM - INFO] - _init_queue() - Line 1053: main - Download queue processor initialized
+[06-Oct-25 11:46:00 AM - INFO] - get_premium_command() - Line 836: main - get_premium_command triggered by user 7302712905
+[06-Oct-25 11:46:01 AM - INFO] - create_ad_session() - Line 50: ad_monetization - Created ad session 70e1b9dc20840190b16226c551d30e9c for user 7302712905
+[06-Oct-25 11:46:01 AM - INFO] - generate_ad_link() - Line 153: ad_monetization - Generated ad links for user 7302712905 - Verification: False, Ad1: False, Ad2: False, Ad3: True
+[06-Oct-25 11:46:01 AM - INFO] - get_premium_command() - Line 896: main - User 7302712905 requested ad-based premium
